@@ -757,18 +757,6 @@ with tab_gen:
                 
                 # Save the final result back to your inputs dictionary
                 st.session_state.inputs[f"role_{role_var}"] = final_text
-
-    with col_txt:
-        # The key is now STABLE: it doesn't change when the selectbox changes
-        final_text = st.text_area(
-            f"text for {role_var}", 
-            key=f"role_val_{role_var}", # This binds the widget to the session state
-            height=150, 
-            label_visibility="collapsed"
-        )
-        
-        # Save the final result back to your inputs dictionary
-        st.session_state.inputs[f"role_{role_var}"] = final_text
                 
         # Generate the UI for EXACTLY the roles found in the template
         for r_var in roles_to_map:
