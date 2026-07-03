@@ -716,17 +716,20 @@ with tab_gen:
         if not roles_to_map:
             st.warning("⚠️ No custom roles found in the template. Did you use tags like `{{ editor_in_chief }}`?")
             
+        # Define the mapper function INSIDE Step 3
         def role_mapper(role_var):
             # Format "editor_in_chief" to "Editor In Chief" for the UI
             display_label = role_var.replace('_', ' ').title()
             st.markdown(f"**{display_label}**")
-            
-            # Ensure the session state for this role exists
-            if f"role_val_{role_var}" not in st.session_state:
-                st.session_state[f"role_val_{role_var}"] = st.session_state.inputs.get(f"role_{role_var}", '')
+
+            # 1. Define a callback function to update the text_area when selectbox changes
+            def update_text():
+                new_source = st.session_state[f"src_{role_var}"]
+                if new_source != "-- Leave Blank / Manual Entry --":
+                    st.session_state[f"role_val_{role_var}"] = "\n".join(scraped_data[new_source])
 
             col_src, col_txt = st.columns([1, 2])
-            
+
             with col_src:
                 # Auto-match logic
                 default_idx = 0
@@ -735,27 +738,28 @@ with tab_gen:
                         default_idx = i
                         break
                 
-                selected_source = st.selectbox(
+                # Use on_change to trigger the update instantly
+                st.selectbox(
                     f"Source for {role_var}", 
                     scraped_options, 
                     index=default_idx, 
-                    key=f"src_{role_var}"
+                    key=f"src_{role_var}",
+                    on_change=update_text,
+                    label_visibility="collapsed"
                 )
-                
-                if selected_source != "-- Leave Blank / Manual Entry --":
-                    # Push new scraped data into the session state variable
-                    st.session_state[f"role_val_{role_var}"] = "\n".join(scraped_data[selected_source])
 
             with col_txt:
-                # The key is now STABLE: it doesn't change when the selectbox changes
+                # If the value hasn't been set yet, initialize it
+                if f"role_val_{role_var}" not in st.session_state:
+                    st.session_state[f"role_val_{role_var}"] = st.session_state.inputs.get(f"role_{role_var}", '')
+
+                # The text area now listens to the session state variable
                 final_text = st.text_area(
                     f"text for {role_var}", 
                     key=f"role_val_{role_var}", 
                     height=150, 
                     label_visibility="collapsed"
                 )
-                
-                # Save the final result back to your inputs dictionary
                 st.session_state.inputs[f"role_{role_var}"] = final_text
                 
         # Generate the UI for EXACTLY the roles found in the template
