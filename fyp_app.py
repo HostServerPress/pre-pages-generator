@@ -717,33 +717,46 @@ with tab_gen:
             st.warning("⚠️ No custom roles found in the template. Did you use tags like `{{ editor_in_chief }}`?")
             
         def role_mapper(role_var):
-            # Format "editor_in_chief" to "Editor In Chief" for the UI
-            display_label = role_var.replace('_', ' ').title()
-            st.markdown(f"**{display_label}**")
-            
-            col_src, col_txt = st.columns([1, 2])
-            
-            with col_src:
-                # Auto-match logic: Attempts to match scraped headers to template variables
-                default_idx = 0
-                for i, opt in enumerate(scraped_options):
-                    if opt.lower().replace('-', ' ') == display_label.lower().replace('-', ' '):
-                        default_idx = i
-                        break
-                
-                selected_source = st.selectbox(f"Source for {role_var}", scraped_options, index=default_idx, key=f"src_{role_var}", label_visibility="collapsed")
-            
-            with col_txt:
-                if selected_source != "-- Leave Blank / Manual Entry --":
-                    mapped_text = "\n".join(scraped_data[selected_source])
-                else:
-                    mapped_text = st.session_state.inputs.get(f"role_{role_var}", '')
-                    
-                dynamic_key = f"txt_{role_var}_{selected_source}"
-                final_text = st.text_area(f"text for {role_var}", value=mapped_text, height=150, key=dynamic_key, label_visibility="collapsed")
-                
-                # Save the input dynamically
-                st.session_state.inputs[f"role_{role_var}"] = final_text
+    display_label = role_var.replace('_', ' ').title()
+    st.markdown(f"**{display_label}**")
+    
+    col_src, col_txt = st.columns([1, 2])
+    
+    # Ensure the session state for this role exists
+    if f"role_val_{role_var}" not in st.session_state:
+        st.session_state[f"role_val_{role_var}"] = st.session_state.inputs.get(f"role_{role_var}", '')
+
+    with col_src:
+        # Match scraped headers to template variables
+        default_idx = 0
+        for i, opt in enumerate(scraped_options):
+            if opt.lower().replace('-', ' ') == display_label.lower().replace('-', ' '):
+                default_idx = i
+                break
+        
+        # When this selectbox changes, we trigger an update to the text_area
+        selected_source = st.selectbox(
+            f"Source for {role_var}", 
+            scraped_options, 
+            index=default_idx, 
+            key=f"src_{role_var}"
+        )
+        
+        if selected_source != "-- Leave Blank / Manual Entry --":
+            # Push new scraped data into the session state variable
+            st.session_state[f"role_val_{role_var}"] = "\n".join(scraped_data[selected_source])
+
+    with col_txt:
+        # The key is now STABLE: it doesn't change when the selectbox changes
+        final_text = st.text_area(
+            f"text for {role_var}", 
+            key=f"role_val_{role_var}", # This binds the widget to the session state
+            height=150, 
+            label_visibility="collapsed"
+        )
+        
+        # Save the final result back to your inputs dictionary
+        st.session_state.inputs[f"role_{role_var}"] = final_text
                 
         # Generate the UI for EXACTLY the roles found in the template
         for r_var in roles_to_map:
