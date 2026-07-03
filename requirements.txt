@@ -1,0 +1,11 @@
+streamlit
+pandas
+plotly
+wordcloud
+scikit-learn
+requests
+beautifulsoup4
+PyPDF2
+docxtpl
+supabase
+Pillow
